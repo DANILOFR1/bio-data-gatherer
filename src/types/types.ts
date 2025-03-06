@@ -12,8 +12,18 @@ export interface ImageData {
   caption?: string;
 }
 
+export interface ProjectType {
+  id: string;
+  name: string;
+  description?: string;
+  startDate: string;
+  createdAt: number;
+  updatedAt?: number;
+}
+
 export interface ObservationType {
   id: string;
+  projectId: string;
   date: string;
   species: string;
   location: string;
@@ -23,8 +33,8 @@ export interface ObservationType {
   weather?: string;
   notes?: string;
   tags?: string[];
-  createdAt: number; // timestamp
-  updatedAt?: number; // timestamp
+  createdAt: number;
+  updatedAt?: number;
 }
 
 export interface FormValues {
@@ -34,4 +44,9 @@ export interface FormValues {
   notes: string;
   tags: string;
   location: string;
+}
+
+export interface ProjectFormValues {
+  name: string;
+  description: string;
 }

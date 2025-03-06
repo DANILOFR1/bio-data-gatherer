@@ -8,6 +8,7 @@ import { Layout } from "./components/layout/Layout";
 import Home from "./pages/Home";
 import NewObservation from "./pages/NewObservation";
 import ObservationList from "./pages/ObservationList";
+import Projects from "./pages/Projects";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { DataProvider } from "./context/DataContext";
@@ -26,6 +27,7 @@ const App = () => (
               <Route index element={<Home />} />
               <Route path="new" element={<NewObservation />} />
               <Route path="observations" element={<ObservationList />} />
+              <Route path="projects" element={<Projects />} />
               <Route path="settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />
             </Route>

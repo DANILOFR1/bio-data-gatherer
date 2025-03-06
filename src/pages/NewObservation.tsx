@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
 import { useData } from "@/context/DataContext";
@@ -18,7 +19,7 @@ import { processImageFiles } from "@/utils/images";
 import { Loader2, MapPin, Camera, AlertCircle } from "lucide-react";
 
 const formSchema = z.object({
-  species: z.string().min(2, "Species name is required"),
+  species: z.string().min(2, "Nome da espécie é obrigatório"),
   habitat: z.string().optional(),
   weather: z.string().optional(),
   notes: z.string().optional(),
@@ -28,7 +29,7 @@ const formSchema = z.object({
 
 const NewObservation = () => {
   const navigate = useNavigate();
-  const { addObservation } = useData();
+  const { addObservation, projects, currentProject, setCurrentProject } = useData();
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
@@ -52,7 +53,18 @@ const NewObservation = () => {
     },
   });
 
-  // Try to get location when component mounts
+  // Redirecionar para projetos se não houver projetos
+  useEffect(() => {
+    if (projects.length === 0) {
+      toast({
+        title: "Nenhum projeto encontrado",
+        description: "Crie um projeto primeiro para adicionar observações",
+      });
+      navigate("/projects");
+    }
+  }, [projects, navigate]);
+
+  // Tentar obter a localização quando o componente é montado
   useEffect(() => {
     fetchLocation();
   }, []);
@@ -64,7 +76,7 @@ const NewObservation = () => {
       const coords = await getCurrentLocation();
       setCoordinates(coords);
       
-      // Try to get a readable location name
+      // Tentar obter um nome de localização legível
       try {
         const locationName = await getLocationName(coords);
         setValue("location", locationName);
@@ -74,7 +86,7 @@ const NewObservation = () => {
       }
     } catch (error) {
       console.error("Geolocation error:", error);
-      setLocationError("Failed to get your location. Please enter it manually or try again.");
+      setLocationError("Falha ao obter sua localização. Por favor, insira manualmente ou tente novamente.");
     } finally {
       setIsGettingLocation(false);
     }
@@ -87,14 +99,14 @@ const NewObservation = () => {
       const processedImages = await processImageFiles(event.target.files);
       setImages((prev) => [...prev, ...processedImages]);
       toast({
-        title: "Images added",
-        description: `Added ${processedImages.length} images`,
+        title: "Imagens adicionadas",
+        description: `Adicionadas ${processedImages.length} imagens`,
       });
     } catch (error) {
       console.error("Failed to process images:", error);
       toast({
-        title: "Error",
-        description: "Failed to process images",
+        title: "Erro",
+        description: "Falha ao processar imagens",
         variant: "destructive",
       });
     }
@@ -107,8 +119,17 @@ const NewObservation = () => {
   const onSubmit = async (data: FormValues) => {
     if (!coordinates) {
       toast({
-        title: "Error",
-        description: "Location data is required. Please try again or enter coordinates manually.",
+        title: "Erro",
+        description: "Dados de localização são obrigatórios. Por favor, tente novamente ou insira coordenadas manualmente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!currentProject) {
+      toast({
+        title: "Erro",
+        description: "Selecione um projeto para adicionar esta observação",
         variant: "destructive",
       });
       return;
@@ -119,9 +140,10 @@ const NewObservation = () => {
     try {
       const newObservation: ObservationType = {
         id: Date.now().toString(),
+        projectId: currentProject.id,
         date: new Date().toISOString(),
         species: data.species,
-        location: data.location || "Unknown location",
+        location: data.location || "Localização desconhecida",
         coordinates,
         images,
         habitat: data.habitat || undefined,
@@ -136,8 +158,8 @@ const NewObservation = () => {
     } catch (error) {
       console.error("Failed to save observation:", error);
       toast({
-        title: "Error",
-        description: "Failed to save observation",
+        title: "Erro",
+        description: "Falha ao salvar observação",
         variant: "destructive",
       });
     } finally {
@@ -145,25 +167,62 @@ const NewObservation = () => {
     }
   };
 
+  const handleProjectChange = (projectId: string) => {
+    const selectedProject = projects.find(project => project.id === projectId);
+    if (selectedProject) {
+      setCurrentProject(selectedProject);
+    }
+  };
+
   return (
     <div className="space-y-6 page-transition pb-20">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">New Observation</h1>
-        <p className="text-muted-foreground mt-1">Record a new biodiversity observation</p>
+        <h1 className="text-2xl font-bold tracking-tight">Nova Observação</h1>
+        <p className="text-muted-foreground mt-1">Registre uma nova observação de biodiversidade</p>
       </header>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-            <CardDescription>Enter the species and location details</CardDescription>
+            <CardTitle>Projeto</CardTitle>
+            <CardDescription>Selecione o projeto para esta observação</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="project">Projeto <span className="text-destructive">*</span></Label>
+              <Select 
+                value={currentProject?.id || ""} 
+                onValueChange={handleProjectChange}
+              >
+                <SelectTrigger id="project">
+                  <SelectValue placeholder="Selecionar projeto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map(project => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!currentProject && (
+                <p className="text-sm text-destructive">É necessário selecionar um projeto</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Informações Básicas</CardTitle>
+            <CardDescription>Insira os detalhes da espécie e localização</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="species">Species Name <span className="text-destructive">*</span></Label>
+              <Label htmlFor="species">Nome da Espécie <span className="text-destructive">*</span></Label>
               <Input
                 id="species"
-                placeholder="Enter species name"
+                placeholder="Digite o nome da espécie"
                 {...register("species")}
               />
               {errors.species && (
@@ -173,7 +232,7 @@ const NewObservation = () => {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="location">Location</Label>
+                <Label htmlFor="location">Localização</Label>
                 <Button
                   type="button"
                   variant="ghost"
@@ -187,12 +246,12 @@ const NewObservation = () => {
                   ) : (
                     <MapPin className="h-4 w-4 mr-2" />
                   )}
-                  Get Location
+                  Obter Localização
                 </Button>
               </div>
               <Input
                 id="location"
-                placeholder="Enter or use current location"
+                placeholder="Digite ou use localização atual"
                 {...register("location")}
               />
               {locationError && (
@@ -202,8 +261,8 @@ const NewObservation = () => {
               )}
               {coordinates && (
                 <p className="text-xs text-muted-foreground">
-                  Coordinates: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
-                  {coordinates.accuracy && ` (Accuracy: ±${Math.round(coordinates.accuracy)}m)`}
+                  Latitude: {coordinates.latitude.toFixed(6)}, Longitude: {coordinates.longitude.toFixed(6)}
+                  {coordinates.accuracy && ` (Precisão: ±${Math.round(coordinates.accuracy)}m)`}
                 </p>
               )}
             </div>
@@ -212,14 +271,14 @@ const NewObservation = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Images</CardTitle>
-            <CardDescription>Add photos of the species or habitat</CardDescription>
+            <CardTitle>Imagens</CardTitle>
+            <CardDescription>Adicione fotos da espécie ou habitat</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
                 <Label htmlFor="images" className="block mb-2">
-                  Upload Images
+                  Upload de Imagens
                 </Label>
                 <div className="flex items-center gap-2">
                   <Button
@@ -229,7 +288,7 @@ const NewObservation = () => {
                     className="w-full"
                   >
                     <Camera className="h-4 w-4 mr-2" />
-                    Select Images
+                    Selecionar Imagens
                   </Button>
                   <input
                     id="images"
@@ -244,7 +303,7 @@ const NewObservation = () => {
 
               {images.length > 0 && (
                 <div>
-                  <Label className="block mb-2">Preview</Label>
+                  <Label className="block mb-2">Pré-visualização</Label>
                   <div className="grid grid-cols-3 gap-2">
                     {images.map((image) => (
                       <div 
@@ -254,11 +313,11 @@ const NewObservation = () => {
                       >
                         <img
                           src={image.thumbnail || image.url}
-                          alt={image.caption || "Observation image"}
+                          alt={image.caption || "Imagem da observação"}
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <p className="text-white text-xs font-medium">Tap to remove</p>
+                          <p className="text-white text-xs font-medium">Toque para remover</p>
                         </div>
                       </div>
                     ))}
@@ -271,8 +330,8 @@ const NewObservation = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Additional Details</CardTitle>
-            <CardDescription>Add environmental conditions and notes</CardDescription>
+            <CardTitle>Detalhes Adicionais</CardTitle>
+            <CardDescription>Adicione condições ambientais e notas</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -280,26 +339,26 @@ const NewObservation = () => {
                 <Label htmlFor="habitat">Habitat</Label>
                 <Input
                   id="habitat"
-                  placeholder="Forest, wetland, etc."
+                  placeholder="Floresta, pântano, etc."
                   {...register("habitat")}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="weather">Weather Conditions</Label>
+                <Label htmlFor="weather">Condições Climáticas</Label>
                 <Input
                   id="weather"
-                  placeholder="Sunny, rainy, etc."
+                  placeholder="Ensolarado, chuvoso, etc."
                   {...register("weather")}
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">Notas</Label>
               <Textarea
                 id="notes"
-                placeholder="Enter any additional observations"
+                placeholder="Digite observações adicionais"
                 {...register("notes")}
                 className="min-h-[100px]"
               />
@@ -309,11 +368,11 @@ const NewObservation = () => {
               <Label htmlFor="tags">Tags</Label>
               <Input
                 id="tags"
-                placeholder="Enter tags separated by commas"
+                placeholder="Digite tags separadas por vírgulas"
                 {...register("tags")}
               />
               <p className="text-xs text-muted-foreground">
-                Example: endangered, juvenile, flowering
+                Exemplo: ameaçada, juvenil, floração
               </p>
             </div>
           </CardContent>
@@ -323,16 +382,16 @@ const NewObservation = () => {
               variant="outline"
               onClick={() => navigate(-1)}
             >
-              Cancel
+              Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  Salvando...
                 </>
               ) : (
-                "Save Observation"
+                "Salvar Observação"
               )}
             </Button>
           </CardFooter>
