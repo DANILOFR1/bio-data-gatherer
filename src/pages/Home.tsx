@@ -116,10 +116,10 @@ const Home = () => {
           <Button
             variant="outline"
             className="flex-1"
-            onClick={() => exportData("csv")}
+            onClick={() => exportData("excel")}
             disabled={observations.length === 0}
           >
-            <Download className="mr-2 h-4 w-4" /> Export CSV
+            <Download className="mr-2 h-4 w-4" /> Export Excel
           </Button>
           <Button
             variant="outline"
