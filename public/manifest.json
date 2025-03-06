@@ -8,6 +8,8 @@
   "background_color": "#ffffff",
   "theme_color": "#34C759",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["science", "utilities", "education"],
   "icons": [
     {
       "src": "/icon-192.png",

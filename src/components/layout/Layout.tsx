@@ -7,6 +7,7 @@ import { toast } from "sonner";
 export const Layout = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isIOSStandalone, setIsIOSStandalone] = useState(false);
+  const [isFirstLoad, setIsFirstLoad] = useState(true);
 
   useEffect(() => {
     // Check if the app is in standalone mode (PWA) on iOS
@@ -34,21 +35,38 @@ export const Layout = () => {
     // Set initial online status
     setIsOnline(navigator.onLine);
 
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    // Show initial offline toast if started offline
-    if (!navigator.onLine) {
+    // Show initial offline toast only if not first app load
+    if (!navigator.onLine && !isFirstLoad) {
       toast.message("Modo offline ativado", {
         description: "Os dados serão salvos localmente e podem ser sincronizados mais tarde.",
         icon: "📱"
       });
     }
 
+    // Show welcome message on first load if offline
+    if (!navigator.onLine && isFirstLoad) {
+      toast.message("Aplicativo em modo offline", {
+        description: "BioData Gatherer está funcionando sem internet. Todos os dados serão salvos localmente.",
+        icon: "📱",
+        duration: 5000
+      });
+      setIsFirstLoad(false);
+    }
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
+  }, [isFirstLoad]);
+
+  // This effect is for the very first load of the app
+  useEffect(() => {
+    if (isFirstLoad) {
+      setIsFirstLoad(false);
+    }
   }, []);
 
   return (
