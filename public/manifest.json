@@ -3,7 +3,7 @@
   "name": "BioData Gatherer",
   "short_name": "BioData",
   "description": "A modern app for collecting biodiversity data in the field",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#34C759",
@@ -27,5 +27,23 @@
       "sizes": "512x512",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Nova Observação",
+      "short_name": "Nova",
+      "description": "Criar uma nova observação",
+      "url": "/new",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ver Observações",
+      "short_name": "Observações",
+      "description": "Ver todas as observações",
+      "url": "/observations",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }
