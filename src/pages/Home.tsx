@@ -14,26 +14,50 @@ const Home = () => {
     uniqueSpecies: 0,
     latestObservation: "",
   });
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
     const uniqueSpecies = new Set(observations.map(obs => obs.species)).size;
     const latestObservation = observations.length > 0 
       ? new Date(observations[0].createdAt).toLocaleDateString() 
-      : "No observations yet";
+      : "Nenhuma observação ainda";
 
     setStats({
       totalObservations: observations.length,
       uniqueSpecies,
       latestObservation,
     });
+    
+    const handleOnlineStatusChange = () => {
+      setIsOnline(navigator.onLine);
+    };
+    
+    window.addEventListener('online', handleOnlineStatusChange);
+    window.addEventListener('offline', handleOnlineStatusChange);
+    
+    return () => {
+      window.removeEventListener('online', handleOnlineStatusChange);
+      window.removeEventListener('offline', handleOnlineStatusChange);
+    };
   }, [observations]);
 
   return (
     <div className="space-y-6 page-transition pb-20">
       <header className="text-center py-6">
         <h1 className="text-3xl font-bold tracking-tight">BioData Gatherer</h1>
-        <p className="text-muted-foreground mt-2">Collect and manage biodiversity data with ease</p>
+        <p className="text-muted-foreground mt-2">Colete e gerencie dados de biodiversidade com facilidade</p>
       </header>
+
+      {!isOnline && (
+        <Card className="bg-muted border-primary-foreground">
+          <CardContent className="py-3">
+            <div className="flex items-center gap-2">
+              <CloudOff className="h-4 w-4 text-primary" />
+              <p className="text-sm">Modo offline ativado - Todos os dados serão salvos localmente</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Button 
@@ -42,7 +66,7 @@ const Home = () => {
           size="lg"
         >
           <PlusCircle className="mr-2 h-5 w-5" />
-          New Observation
+          Nova Observação
         </Button>
         
         <Button 
@@ -52,7 +76,7 @@ const Home = () => {
           size="lg"
         >
           <List className="mr-2 h-5 w-5" />
-          View Observations
+          Ver Observações
         </Button>
       </div>
 
@@ -64,7 +88,7 @@ const Home = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            <p>Total Observations</p>
+            <p>Total de Observações</p>
           </CardContent>
         </Card>
 
@@ -75,14 +99,14 @@ const Home = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center">
-            <p>Unique Species</p>
+            <p>Espécies Únicas</p>
           </CardContent>
         </Card>
 
         <Card className="card-hover">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-center text-muted-foreground">
-              Latest Entry
+              Entrada Mais Recente
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center">
@@ -93,22 +117,22 @@ const Home = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Data Management</CardTitle>
-          <CardDescription>Export your collected data</CardDescription>
+          <CardTitle>Gerenciamento de Dados</CardTitle>
+          <CardDescription>Exporte seus dados coletados</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="flex items-center">
             <div className="mr-2">
-              {syncStatus === "synced" ? (
+              {isOnline ? (
                 <Cloud className="h-5 w-5 text-primary" />
               ) : (
                 <CloudOff className="h-5 w-5 text-muted-foreground" />
               )}
             </div>
             <p className="text-sm">
-              {syncStatus === "synced" 
-                ? "All data is synced locally" 
-                : "Some data may not be synced"}
+              {isOnline 
+                ? "Você está online" 
+                : "Você está offline - Todos os dados estão sendo salvos localmente"}
             </p>
           </div>
         </CardContent>
@@ -119,7 +143,7 @@ const Home = () => {
             onClick={() => exportData("excel")}
             disabled={observations.length === 0}
           >
-            <Download className="mr-2 h-4 w-4" /> Export Excel
+            <Download className="mr-2 h-4 w-4" /> Exportar Excel
           </Button>
           <Button
             variant="outline"
@@ -127,7 +151,7 @@ const Home = () => {
             onClick={() => exportData("json")}
             disabled={observations.length === 0}
           >
-            <Download className="mr-2 h-4 w-4" /> Export JSON
+            <Download className="mr-2 h-4 w-4" /> Exportar JSON
           </Button>
         </CardFooter>
       </Card>

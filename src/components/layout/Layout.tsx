@@ -20,16 +20,30 @@ export const Layout = () => {
     // Handle online/offline status
     const handleOnline = () => {
       setIsOnline(true);
-      toast.success("You're back online");
+      toast.success("Você está online novamente");
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      toast.warning("You're offline. Data will be saved locally.");
+      toast.message("Modo offline ativado", {
+        description: "Os dados serão salvos localmente e podem ser sincronizados mais tarde.",
+        icon: "📱"
+      });
     };
+
+    // Set initial online status
+    setIsOnline(navigator.onLine);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+
+    // Show initial offline toast if started offline
+    if (!navigator.onLine) {
+      toast.message("Modo offline ativado", {
+        description: "Os dados serão salvos localmente e podem ser sincronizados mais tarde.",
+        icon: "📱"
+      });
+    }
 
     return () => {
       window.removeEventListener("online", handleOnline);

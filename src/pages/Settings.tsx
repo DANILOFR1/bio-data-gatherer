@@ -1,11 +1,10 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useData } from "@/context/DataContext";
-import { Download, Database, Trash2, Info } from "lucide-react";
+import { Download, Database, Trash2, Info, MapPin, Wifi, WifiOff } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -21,12 +20,10 @@ const Settings = () => {
   const [highQualityImages, setHighQualityImages] = useState(false);
 
   useEffect(() => {
-    // Calculate approximate storage usage
     const calculateStorageUsage = () => {
       try {
         const storageData = localStorage.getItem("biodataObservations");
         if (storageData) {
-          // Convert length to MB
           setStorageUsage(storageData.length / (1024 * 1024));
         }
       } catch (error) {
@@ -36,12 +33,10 @@ const Settings = () => {
 
     calculateStorageUsage();
 
-    // Check if the app is already installed (display-mode: standalone)
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
     }
 
-    // Listen for the beforeinstallprompt event to detect if the app is installable
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setInstallPrompt(e);
@@ -85,39 +80,87 @@ const Settings = () => {
 
   const handleToggleLocation = (enabled: boolean) => {
     setLocationAlwaysEnabled(enabled);
-    toast.success(`Location services ${enabled ? "enabled" : "disabled"}`);
-    // Here you would typically update some actual application settings
+    toast.success(`Serviços de localização ${enabled ? "ativados" : "desativados"}`);
+    localStorage.setItem("locationAlwaysEnabled", enabled.toString());
   };
 
   const handleToggleOfflineMode = (enabled: boolean) => {
     setOfflineMode(enabled);
-    toast.success(`Offline mode ${enabled ? "enabled" : "disabled"}`);
-    // Here you would typically update some actual application settings
+    toast.success(`Modo offline ${enabled ? "ativado" : "desativado"}`);
+    localStorage.setItem("offlineMode", enabled.toString());
+    
+    if (enabled) {
+      toast.message("Dica de modo offline", {
+        description: "Seu app salvará todos os dados localmente, mesmo sem conexão à internet.",
+        duration: 5000,
+      });
+    }
   };
 
   const handleToggleImageQuality = (enabled: boolean) => {
     setHighQualityImages(enabled);
-    toast.success(`High quality images ${enabled ? "enabled" : "disabled"}`);
-    // Here you would typically update some actual application settings
+    toast.success(`Imagens em alta qualidade ${enabled ? "ativadas" : "desativadas"}`);
+    localStorage.setItem("highQualityImages", enabled.toString());
+    
+    if (enabled) {
+      toast.message("Aviso de armazenamento", {
+        description: "Imagens em alta qualidade ocupam mais espaço de armazenamento.",
+        duration: 5000,
+      });
+    }
   };
+
+  useEffect(() => {
+    const savedLocationEnabled = localStorage.getItem("locationAlwaysEnabled");
+    const savedOfflineMode = localStorage.getItem("offlineMode");
+    const savedImageQuality = localStorage.getItem("highQualityImages");
+    
+    if (savedLocationEnabled !== null) {
+      setLocationAlwaysEnabled(savedLocationEnabled === "true");
+    }
+    
+    if (savedOfflineMode !== null) {
+      setOfflineMode(savedOfflineMode === "true");
+    } else {
+      setOfflineMode(true);
+      localStorage.setItem("offlineMode", "true");
+    }
+    
+    if (savedImageQuality !== null) {
+      setHighQualityImages(savedImageQuality === "true");
+    }
+  }, []);
+
+  const isCurrentlyOnline = navigator.onLine;
 
   return (
     <div className="space-y-6 page-transition pb-20">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-1">Configure app preferences and manage data</p>
+        <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
+        <p className="text-muted-foreground mt-1">Configure preferências do aplicativo e gerencie dados</p>
       </header>
+
+      {!isCurrentlyOnline && (
+        <Card className="bg-muted">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <WifiOff className="h-5 w-5 text-muted-foreground" />
+              <p className="text-sm font-medium">Você está atualmente offline. Seus dados estão sendo salvos localmente.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Data Management</CardTitle>
-          <CardDescription>Control how your data is stored and managed</CardDescription>
+          <CardTitle>Gerenciamento de Dados</CardTitle>
+          <CardDescription>Controle como seus dados são armazenados e gerenciados</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Offline Storage</Label>
-              <p className="text-sm text-muted-foreground">Keep data available when offline</p>
+              <Label>Armazenamento Offline</Label>
+              <p className="text-sm text-muted-foreground">Manter dados disponíveis quando offline</p>
             </div>
             <Switch checked={offlineMode} onCheckedChange={handleToggleOfflineMode} />
           </div>
@@ -125,9 +168,9 @@ const Settings = () => {
           <div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Storage Usage</Label>
+                <Label>Uso de Armazenamento</Label>
                 <p className="text-sm text-muted-foreground">
-                  {observations.length} observations ({storageUsage.toFixed(2)} MB)
+                  {observations.length} observações ({storageUsage.toFixed(2)} MB)
                 </p>
               </div>
               <Database className="h-4 w-4 text-muted-foreground" />
@@ -140,7 +183,7 @@ const Settings = () => {
               onClick={() => exportData("excel")}
               disabled={observations.length === 0}
             >
-              <Download className="mr-2 h-4 w-4" /> Export as Excel
+              <Download className="mr-2 h-4 w-4" /> Exportar Excel
             </Button>
             <Button
               variant="outline"
@@ -148,7 +191,7 @@ const Settings = () => {
               onClick={() => exportData("json")}
               disabled={observations.length === 0}
             >
-              <Download className="mr-2 h-4 w-4" /> Export as JSON
+              <Download className="mr-2 h-4 w-4" /> Exportar JSON
             </Button>
           </div>
         </CardContent>
@@ -160,24 +203,24 @@ const Settings = () => {
                 disabled={observations.length === 0}
                 className="w-full"
               >
-                <Trash2 className="mr-2 h-4 w-4" /> Clear All Data
+                <Trash2 className="mr-2 h-4 w-4" /> Limpar Todos os Dados
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action will permanently delete all your observations. This action cannot be
-                  undone.
+                  Esta ação excluirá permanentemente todas as suas observações. Esta ação não pode ser
+                  desfeita.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleClearAllData}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Delete All Data
+                  Excluir Todos os Dados
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -187,22 +230,22 @@ const Settings = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>App Preferences</CardTitle>
-          <CardDescription>Customize how the app works</CardDescription>
+          <CardTitle>Preferências do Aplicativo</CardTitle>
+          <CardDescription>Personalize como o aplicativo funciona</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Location Services</Label>
-              <p className="text-sm text-muted-foreground">Always enable location for observations</p>
+              <Label>Serviços de Localização</Label>
+              <p className="text-sm text-muted-foreground">Sempre ativar localização para observações</p>
             </div>
             <Switch checked={locationAlwaysEnabled} onCheckedChange={handleToggleLocation} />
           </div>
           <Separator />
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>High Quality Images</Label>
-              <p className="text-sm text-muted-foreground">Store images in higher quality (uses more storage)</p>
+              <Label>Imagens em Alta Qualidade</Label>
+              <p className="text-sm text-muted-foreground">Armazenar imagens em maior qualidade (usa mais armazenamento)</p>
             </div>
             <Switch checked={highQualityImages} onCheckedChange={handleToggleImageQuality} />
           </div>
@@ -211,26 +254,26 @@ const Settings = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Installation</CardTitle>
-          <CardDescription>Install the app on your device</CardDescription>
+          <CardTitle>Instalação</CardTitle>
+          <CardDescription>Instale o aplicativo no seu dispositivo</CardDescription>
         </CardHeader>
         <CardContent>
           {isInstalled ? (
             <div className="flex items-center text-primary">
               <Info className="mr-2 h-4 w-4" />
-              <p>App is already installed on this device</p>
+              <p>Aplicativo já está instalado neste dispositivo</p>
             </div>
           ) : isInstallable ? (
             <Button
               onClick={handleInstallClick}
               className="w-full"
             >
-              Install as App
+              Instalar como Aplicativo
             </Button>
           ) : (
             <p className="text-sm text-muted-foreground">
-              You can install this app by adding it to your home screen from your browser menu
-              or visit the site in a supported browser.
+              Você pode instalar este aplicativo adicionando-o à sua tela inicial a partir do menu do navegador
+              ou visite o site em um navegador compatível.
             </p>
           )}
         </CardContent>
@@ -238,11 +281,11 @@ const Settings = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>About</CardTitle>
+          <CardTitle>Sobre</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <div>
-            <Label>Version</Label>
+            <Label>Versão</Label>
             <p className="text-sm text-muted-foreground">1.0.0</p>
           </div>
           <div>
